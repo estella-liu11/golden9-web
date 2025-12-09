@@ -24,7 +24,7 @@ export default function Admin() {
         email: '',
         username: '',
         password: '',
-        role: 'standard',
+        role: 'user',
         points: 0,
         is_active: true,
     });
@@ -49,6 +49,14 @@ export default function Admin() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Redirect non-admin users away from admin panel
+    useEffect(() => {
+        const role = localStorage.getItem('userRole');
+        if (role !== 'admin') {
+            navigate('/login?role=admin');
+        }
+    }, [navigate]);
 
     // Fetch data functions
     const fetchUsers = async () => {
@@ -132,7 +140,7 @@ export default function Admin() {
             email: '',
             username: '',
             password: '',
-            role: 'standard',
+            role: 'user',
             points: 0,
             is_active: true,
         });
@@ -145,7 +153,7 @@ export default function Admin() {
             email: user.email || '',
             username: user.username || '',
             password: '',
-            role: user.role || 'standard',
+            role: user.role || 'user',
             points: user.points || 0,
             is_active: user.is_active !== undefined ? user.is_active : true,
         });

@@ -100,7 +100,7 @@ app.post('/api/register', async (req, res) => {
         // Insert new user
         const queryText = `
             INSERT INTO users (username, email, password_hash, role, points)
-            VALUES ($1, $2, $3, 'standard', 0)
+            VALUES ($1, $2, $3, 'user', 0)
             RETURNING user_id, username, email, role, points, is_active, created_at
         `;
         const result = await pool.query(queryText, [username, email, passwordHash]);
@@ -127,8 +127,8 @@ app.post('/api/register', async (req, res) => {
 // POST: User login
 app.post('/api/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
-        console.log('API Hit: POST /api/login', { email });
+        const { email, password, role } = req.body;
+        console.log('API Hit: POST /api/login', { email, role });
 
         const result = await pool.query(
             'SELECT user_id, email, password_hash, username, role, points, is_active FROM users WHERE email = $1',
@@ -140,6 +140,20 @@ app.post('/api/login', async (req, res) => {
         }
 
         const user = result.rows[0];
+
+        // Reject if role does not match requested context
+        const expectedRole = role === 'admin' ? 'admin' : 'user';
+        const normalizedRole = (user.role || '').toLowerCase();
+        const isAdminAccount = normalizedRole === 'admin';
+        const isMemberAccount = normalizedRole === 'user' || normalizedRole === 'standard';
+
+        if (expectedRole === 'admin' && !isAdminAccount) {
+            return res.status(403).json({ message: 'Only admin accounts can sign in here.' });
+        }
+
+        if (expectedRole === 'user' && !isMemberAccount) {
+            return res.status(403).json({ message: 'Only member accounts can sign in here.' });
+        }
 
         // Compare password
         const passwordMatch = await bcrypt.compare(password, user.password_hash);

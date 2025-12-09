@@ -20,6 +20,13 @@ export default function Dashboard() {
     const [error, setError] = useState('');
 
     useEffect(() => {
+        const role = localStorage.getItem('userRole');
+        if (role === 'admin') {
+            navigate('/admin');
+        }
+    }, [navigate]);
+
+    useEffect(() => {
         const hydrateFromLocal = () => {
             try {
                 const profile = JSON.parse(localStorage.getItem('userProfile'));

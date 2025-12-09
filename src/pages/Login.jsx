@@ -10,6 +10,7 @@ export default function Login() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const isAdmin = searchParams.get('role') === 'admin';
+    const expectedRole = isAdmin ? 'admin' : 'user';
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -17,7 +18,7 @@ export default function Login() {
         setLoading(true);
 
         try {
-            const data = await authAPI.login({ email, password });
+            const data = await authAPI.login({ email, password, role: expectedRole });
             const token = data?.token;
             const user = data?.user || {};
 
@@ -26,20 +27,21 @@ export default function Login() {
             }
 
             localStorage.setItem('token', token);
-            localStorage.setItem('userRole', user.role || (isAdmin ? 'admin' : 'standard'));
+            const resolvedRole = (user.role || '').toLowerCase() || expectedRole;
+            localStorage.setItem('userRole', resolvedRole);
             localStorage.setItem('userProfile', JSON.stringify({
                 user_id: user.user_id,
                 username: user.username || user.full_name || '',
                 full_name: user.full_name || user.username || '',
                 email: user.email || email,
                 phone_number: user.phone_number || '',
-                memberLevel: user.memberLevel || user.role || 'Standard',
+                memberLevel: user.memberLevel || user.role || (expectedRole === 'admin' ? 'Admin' : 'User'),
                 points: user.points ?? 0,
             }));
             window.dispatchEvent(new Event('user-profile-updated'));
 
             setLoading(false);
-            if (user.role === 'admin' || isAdmin) {
+            if (resolvedRole === 'admin') {
                 navigate('/admin');
             } else {
                 navigate('/dashboard');
