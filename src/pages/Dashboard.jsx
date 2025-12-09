@@ -1,24 +1,97 @@
-export default function Dashboard() {
-    // Mock data - will be replaced with API calls
-    const userInfo = {
-        username: 'John Doe',
-        email: 'john.doe@example.com',
-        phone: '+64 21 123 4567',
-        fullName: 'John Doe',
-        memberLevel: 'Gold',
-        points: 1250,
-    };
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { userAPI } from '../services/api';
 
-    const recentActivities = [
+export default function Dashboard() {
+    const navigate = useNavigate();
+    const [userInfo, setUserInfo] = useState({
+        username: '',
+        email: '',
+        phone: '',
+        fullName: '',
+        memberLevel: 'Standard',
+        points: 0,
+    });
+    const [recentActivities, setRecentActivities] = useState([
         { id: 1, type: 'Event Registration', description: 'Registered for Winter Tournament', date: '2025-01-10', points: '+50' },
         { id: 2, type: 'Purchase', description: 'Bought Pool Cue', date: '2025-01-08', points: '-200' },
         { id: 3, type: 'Event Participation', description: 'Completed Spring League', date: '2025-01-05', points: '+100' },
-    ];
+    ]);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const hydrateFromLocal = () => {
+            try {
+                const profile = JSON.parse(localStorage.getItem('userProfile'));
+                if (profile) {
+                    setUserInfo(prev => ({
+                        ...prev,
+                        username: profile.username || profile.full_name || '',
+                        email: profile.email || '',
+                        phone: profile.phone_number || '',
+                        fullName: profile.full_name || profile.username || '',
+                        memberLevel: profile.memberLevel || profile.role || 'Standard',
+                        points: profile.points ?? 0,
+                    }));
+                    return profile.user_id;
+                }
+            } catch (err) {
+                console.error('Failed to parse userProfile', err);
+            }
+            return null;
+        };
+
+        const fetchProfile = async (userId) => {
+            if (!userId) return;
+            try {
+                const data = await userAPI.getById(userId);
+                setUserInfo({
+                    username: data.username || data.full_name || '',
+                    email: data.email || '',
+                    phone: data.phone_number || '',
+                    fullName: data.full_name || data.username || '',
+                    memberLevel: data.role || 'Standard',
+                    points: data.points ?? 0,
+                });
+                localStorage.setItem('userProfile', JSON.stringify({
+                    user_id: data.user_id,
+                    username: data.username || '',
+                    full_name: data.full_name || '',
+                    email: data.email || '',
+                    phone_number: data.phone_number || '',
+                    memberLevel: data.role || 'Standard',
+                    points: data.points ?? 0,
+                }));
+                window.dispatchEvent(new Event('user-profile-updated'));
+            } catch (err) {
+                setError('无法加载用户信息，请稍后再试');
+            }
+        };
+
+        const userId = hydrateFromLocal();
+        fetchProfile(userId);
+    }, []);
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userProfile');
+        window.dispatchEvent(new Event('user-profile-updated'));
+        navigate('/login');
+    };
 
     return (
         <div className="min-h-screen bg-white py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h1 className="text-4xl font-bold text-gray-900 mb-8">My Dashboard</h1>
+                <div className="flex items-center justify-between mb-8">
+                    <h1 className="text-4xl font-bold text-gray-900">My Dashboard</h1>
+                    <button
+                        onClick={handleLogout}
+                        className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                        Log out
+                    </button>
+                </div>
 
                 {/* User Info Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

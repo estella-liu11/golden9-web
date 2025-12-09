@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { authAPI } from '../services/api';
 
 export default function Signup() {
     const [formData, setFormData] = useState({
@@ -25,18 +26,31 @@ export default function Signup() {
         setLoading(true);
 
         try {
-            // TODO: Implement actual API call to /api/register
-            // const response = await fetch('http://localhost:3000/api/register', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify(formData),
-            // });
+            const payload = {
+                email: formData.email,
+                password: formData.password,
+                username: formData.full_name,
+                full_name: formData.full_name,
+                phone_number: formData.phone_number,
+            };
 
-            // For now, simulate registration
-            setTimeout(() => {
-                setLoading(false);
-                navigate('/login');
-            }, 1000);
+            const data = await authAPI.register(payload);
+
+            if (data?.user) {
+                localStorage.setItem('userProfile', JSON.stringify({
+                    user_id: data.user.user_id,
+                    username: data.user.username || formData.full_name,
+                    full_name: data.user.full_name || formData.full_name,
+                    email: data.user.email || formData.email,
+                    phone_number: data.user.phone_number || formData.phone_number,
+                    memberLevel: data.user.role || 'Standard',
+                    points: data.user.points ?? 0,
+                }));
+                window.dispatchEvent(new Event('user-profile-updated'));
+            }
+
+            setLoading(false);
+            navigate('/login');
         } catch (err) {
             setError('Registration failed. Please try again.');
             setLoading(false);

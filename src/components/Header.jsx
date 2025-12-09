@@ -1,9 +1,49 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
 export default function Header() {
     const location = useLocation();
+    const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [userInitial, setUserInitial] = useState('');
+
+    const resolveInitial = (name = '', email = '') => {
+        if (name) {
+            return name.trim().charAt(0).toUpperCase();
+        }
+        if (email) {
+            return email.trim().charAt(0).toUpperCase();
+        }
+        return '';
+    };
+
+    useEffect(() => {
+        const readProfile = () => {
+            try {
+                const profile = JSON.parse(localStorage.getItem('userProfile'));
+                if (profile && (profile.username || profile.full_name || profile.email)) {
+                    setUserInitial(
+                        resolveInitial(profile.username || profile.full_name, profile.email)
+                    );
+                    return;
+                }
+            } catch (err) {
+                console.error('Failed to parse userProfile', err);
+            }
+            setUserInitial('');
+        };
+
+        readProfile();
+        const handleProfileUpdate = () => readProfile();
+
+        window.addEventListener('storage', handleProfileUpdate);
+        window.addEventListener('user-profile-updated', handleProfileUpdate);
+
+        return () => {
+            window.removeEventListener('storage', handleProfileUpdate);
+            window.removeEventListener('user-profile-updated', handleProfileUpdate);
+        };
+    }, []);
 
     const isActive = (path) => location.pathname === path;
 
@@ -31,19 +71,29 @@ export default function Header() {
                                 key={link.path}
                                 to={link.path}
                                 className={`px-3 py-2 text-sm font-medium transition-colors ${isActive(link.path)
-                                        ? 'text-primary border-b-2 border-primary'
-                                        : 'text-gray-700 hover:text-primary'
+                                    ? 'text-primary border-b-2 border-primary'
+                                    : 'text-gray-700 hover:text-primary'
                                     }`}
                             >
                                 {link.label}
                             </Link>
                         ))}
-                        <Link
-                            to="/login"
-                            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-purple-700 transition-colors"
-                        >
-                            Login
-                        </Link>
+                        {userInitial ? (
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                className="w-10 h-10 flex items-center justify-center rounded-full bg-primary text-white font-semibold text-base uppercase"
+                                aria-label="Go to dashboard"
+                            >
+                                {userInitial}
+                            </button>
+                        ) : (
+                            <Link
+                                to="/login"
+                                className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-purple-700 transition-colors"
+                            >
+                                Login
+                            </Link>
+                        )}
                     </div>
 
                     {/* Mobile menu button */}
@@ -78,20 +128,33 @@ export default function Header() {
                                 to={link.path}
                                 onClick={() => setIsMenuOpen(false)}
                                 className={`block px-3 py-2 text-base font-medium rounded-md ${isActive(link.path)
-                                        ? 'text-primary bg-purple-50'
-                                        : 'text-gray-700 hover:text-primary hover:bg-gray-50'
+                                    ? 'text-primary bg-purple-50'
+                                    : 'text-gray-700 hover:text-primary hover:bg-gray-50'
                                     }`}
                             >
                                 {link.label}
                             </Link>
                         ))}
-                        <Link
-                            to="/login"
-                            onClick={() => setIsMenuOpen(false)}
-                            className="block px-3 py-2 text-base font-medium text-white bg-primary rounded-md hover:bg-purple-700"
-                        >
-                            Login
-                        </Link>
+                        {userInitial ? (
+                            <button
+                                onClick={() => {
+                                    setIsMenuOpen(false);
+                                    navigate('/dashboard');
+                                }}
+                                className="w-10 h-10 flex items-center justify-center rounded-full bg-primary text-white font-semibold uppercase"
+                                aria-label="Go to dashboard"
+                            >
+                                {userInitial}
+                            </button>
+                        ) : (
+                            <Link
+                                to="/login"
+                                onClick={() => setIsMenuOpen(false)}
+                                className="block px-3 py-2 text-base font-medium text-white bg-primary rounded-md hover:bg-purple-700"
+                            >
+                                Login
+                            </Link>
+                        )}
                     </div>
                 )}
             </nav>

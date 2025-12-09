@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { authAPI } from '../services/api';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -16,27 +17,35 @@ export default function Login() {
         setLoading(true);
 
         try {
-            // TODO: Implement actual API call to /api/login
-            // const response = await fetch('http://localhost:3000/api/login', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify({ email, password }),
-            // });
+            const data = await authAPI.login({ email, password });
+            const token = data?.token;
+            const user = data?.user || {};
 
-            // For now, simulate login
-            setTimeout(() => {
-                // Set token and role in localStorage for ProtectedRoute
-                localStorage.setItem('token', 'mock-token-' + Date.now());
-                localStorage.setItem('userRole', isAdmin ? 'admin' : 'user');
-                setLoading(false);
-                if (isAdmin) {
-                    navigate('/admin');
-                } else {
-                    navigate('/dashboard');
-                }
-            }, 1000);
+            if (!token) {
+                throw new Error('登录失败：缺少凭证');
+            }
+
+            localStorage.setItem('token', token);
+            localStorage.setItem('userRole', user.role || (isAdmin ? 'admin' : 'standard'));
+            localStorage.setItem('userProfile', JSON.stringify({
+                user_id: user.user_id,
+                username: user.username || user.full_name || '',
+                full_name: user.full_name || user.username || '',
+                email: user.email || email,
+                phone_number: user.phone_number || '',
+                memberLevel: user.memberLevel || user.role || 'Standard',
+                points: user.points ?? 0,
+            }));
+            window.dispatchEvent(new Event('user-profile-updated'));
+
+            setLoading(false);
+            if (user.role === 'admin' || isAdmin) {
+                navigate('/admin');
+            } else {
+                navigate('/dashboard');
+            }
         } catch (err) {
-            setError('Login failed. Please check your credentials.');
+            setError(err.message || 'Login failed. Please check your credentials.');
             setLoading(false);
         }
     };

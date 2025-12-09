@@ -91,4 +91,16 @@ export const dashboardAPI = {
     getStats: () => apiCall('/dashboard/stats'),
 };
 
+// Auth APIs
+export const authAPI = {
+    login: (credentials) => apiCall('/login', {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+    }),
+    register: (payload) => apiCall('/register', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    }),
+};
+
 

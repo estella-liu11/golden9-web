@@ -1,6 +1,31 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function Membership() {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        const checkLoginState = () => {
+            try {
+                const token = localStorage.getItem('token');
+                const profile = localStorage.getItem('userProfile');
+                setIsLoggedIn(Boolean(token || profile));
+            } catch (err) {
+                console.error('Failed to read login state', err);
+                setIsLoggedIn(false);
+            }
+        };
+
+        checkLoginState();
+        window.addEventListener('storage', checkLoginState);
+        window.addEventListener('user-profile-updated', checkLoginState);
+
+        return () => {
+            window.removeEventListener('storage', checkLoginState);
+            window.removeEventListener('user-profile-updated', checkLoginState);
+        };
+    }, []);
+
     const membershipTiers = [
         {
             name: 'Bronze',
@@ -110,20 +135,22 @@ export default function Membership() {
                     ))}
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-8 text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                        Already a Member?
-                    </h2>
-                    <p className="text-gray-600 mb-6">
-                        Log in to your account to manage your membership, view your benefits, and renew your subscription.
-                    </p>
-                    <Link
-                        to="/login"
-                        className="inline-block px-8 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-                    >
-                        Log In to Your Account
-                    </Link>
-                </div>
+                {!isLoggedIn && (
+                    <div className="bg-gray-50 rounded-lg p-8 text-center">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                            Already a Member?
+                        </h2>
+                        <p className="text-gray-600 mb-6">
+                            Log in to your account to manage your membership, view your benefits, and renew your subscription.
+                        </p>
+                        <Link
+                            to="/login"
+                            className="inline-block px-8 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                        >
+                            Log In to Your Account
+                        </Link>
+                    </div>
+                )}
             </div>
         </div>
     );
