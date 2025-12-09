@@ -1,4 +1,5 @@
 const express = require('express');
+const { randomUUID } = require('crypto');
 const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
@@ -327,19 +328,23 @@ app.get('/api/events/:id', async (req, res) => {
 // POST: Create a new event
 app.post('/api/events', async (req, res) => {
     try {
-        const { title, description, location, start_time, end_time, status, fee, max_participants } = req.body;
+        const { title, description, location, start_time, end_time, status, fee, max_participants, event_id } = req.body;
         console.log('API Hit: POST /api/events', { title, location, start_time });
 
         if (!title || !start_time) {
             return res.status(400).json({ message: 'Title and start_time are required.' });
         }
 
+        // Generate a stable UUID for this event if the client did not supply one.
+        const eventId = event_id || randomUUID();
+
         const queryText = `
-            INSERT INTO events (title, description, location, start_time, end_time, status, fee, max_participants, creator_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            INSERT INTO events (event_id, title, description, location, start_time, end_time, status, fee, max_participants, creator_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING event_id, title, description, location, start_time, end_time, status, fee, max_participants, created_at
         `;
         const result = await pool.query(queryText, [
+            eventId,
             title,
             description || null,
             location || null,
@@ -467,19 +472,23 @@ app.get('/api/products/:id', async (req, res) => {
 // POST: Create a new product
 app.post('/api/products', async (req, res) => {
     try {
-        const { name, description, price, category, is_available, image_url } = req.body;
+        const { name, description, price, category, is_available, image_url, product_id } = req.body;
         console.log('API Hit: POST /api/products', { name, price });
 
         if (!name || price === undefined) {
             return res.status(400).json({ message: 'Name and price are required.' });
         }
 
+        // Generate a stable UUID for this product if the client did not supply one.
+        const productId = product_id || randomUUID();
+
         const queryText = `
-            INSERT INTO products (name, description, price, category, is_available, image_url)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO products (product_id, name, description, price, category, is_available, image_url)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING product_id, name, description, price, category, is_available, image_url, created_at
         `;
         const result = await pool.query(queryText, [
+            productId,
             name,
             description || null,
             price,

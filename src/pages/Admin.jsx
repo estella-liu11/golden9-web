@@ -24,7 +24,7 @@ export default function Admin() {
         email: '',
         username: '',
         password: '',
-        role: 'user',
+        role: 'standard',
         points: 0,
         is_active: true,
     });
@@ -50,6 +50,43 @@ export default function Admin() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Local fallback storage helpers (used when API is unreachable)
+    const STORAGE_KEYS = {
+        users: 'admin_users_cache',
+        events: 'admin_events_cache',
+        products: 'admin_products_cache',
+    };
+
+    const getLocalData = (key) => {
+        try {
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : [];
+        } catch (err) {
+            console.error('Failed to parse local data', err);
+            return [];
+        }
+    };
+
+    const setLocalData = (key, data) => {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+        } catch (err) {
+            console.error('Failed to write local data', err);
+        }
+    };
+
+    const generateUuid = () => {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        return `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+    };
+
+    const makeId = (prefix) => {
+        const uuid = generateUuid();
+        return prefix ? `${prefix}_${uuid}` : uuid;
+    };
+
     // Redirect non-admin users away from admin panel
     useEffect(() => {
         const role = localStorage.getItem('userRole');
@@ -64,9 +101,13 @@ export default function Admin() {
             const data = await userAPI.getAll();
             setUsers(data);
             setStats(prev => ({ ...prev, totalUsers: data.length }));
+            setLocalData(STORAGE_KEYS.users, data);
         } catch (err) {
             console.error('Failed to fetch users:', err);
-            setError('Failed to load users');
+            const local = getLocalData(STORAGE_KEYS.users);
+            setUsers(local);
+            setStats(prev => ({ ...prev, totalUsers: local.length }));
+            setError('无法连接服务器，正在显示本地数据 (Users)');
         }
     };
 
@@ -76,9 +117,14 @@ export default function Admin() {
             setEvents(data);
             const activeCount = data.filter(e => e.status === 'scheduled' || e.status === 'ongoing').length;
             setStats(prev => ({ ...prev, activeEvents: activeCount }));
+            setLocalData(STORAGE_KEYS.events, data);
         } catch (err) {
             console.error('Failed to fetch events:', err);
-            setError('Failed to load events');
+            const local = getLocalData(STORAGE_KEYS.events);
+            setEvents(local);
+            const activeCount = local.filter(e => e.status === 'scheduled' || e.status === 'ongoing').length;
+            setStats(prev => ({ ...prev, activeEvents: activeCount }));
+            setError('无法连接服务器，正在显示本地数据 (Events)');
         }
     };
 
@@ -87,9 +133,13 @@ export default function Admin() {
             const data = await productAPI.getAll();
             setProducts(data);
             setStats(prev => ({ ...prev, totalProducts: data.length }));
+            setLocalData(STORAGE_KEYS.products, data);
         } catch (err) {
             console.error('Failed to fetch products:', err);
-            setError('Failed to load products');
+            const local = getLocalData(STORAGE_KEYS.products);
+            setProducts(local);
+            setStats(prev => ({ ...prev, totalProducts: local.length }));
+            setError('无法连接服务器，正在显示本地数据 (Products)');
         }
     };
 
@@ -101,7 +151,7 @@ export default function Admin() {
             fetchEvents();
         } else if (activeView === 'products') {
             fetchProducts();
-        } else if (activeView === 'dashboard') {
+        } else if (activeView === 'dashboard' || activeView === 'leaderboard') {
             fetchUsers();
             fetchEvents();
             fetchProducts();
@@ -117,7 +167,7 @@ export default function Admin() {
                 fetchEvents();
             } else if (activeView === 'products') {
                 fetchProducts();
-            } else if (activeView === 'dashboard') {
+            } else if (activeView === 'dashboard' || activeView === 'leaderboard') {
                 fetchUsers();
                 fetchEvents();
                 fetchProducts();
@@ -153,7 +203,7 @@ export default function Admin() {
             email: user.email || '',
             username: user.username || '',
             password: '',
-            role: user.role || 'user',
+            role: user.role || 'standard',
             points: user.points || 0,
             is_active: user.is_active !== undefined ? user.is_active : true,
         });
@@ -192,7 +242,22 @@ export default function Admin() {
             setShowUserModal(false);
             fetchUsers();
         } catch (err) {
-            setError(err.message || 'Failed to save user');
+            // Fallback to local persistence when API fails
+            console.error('Saving user via API failed, using local store:', err);
+            const local = getLocalData(STORAGE_KEYS.users);
+            let nextUsers;
+
+            if (editingItem) {
+                nextUsers = local.map(u => u.user_id === editingItem.user_id ? { ...u, ...userData } : u);
+            } else {
+                nextUsers = [...local, { ...userData, user_id: makeId('user') }];
+            }
+
+            setLocalData(STORAGE_KEYS.users, nextUsers);
+            setUsers(nextUsers);
+            setStats(prev => ({ ...prev, totalUsers: nextUsers.length }));
+            setShowUserModal(false);
+            setError('API 不可用，数据已保存在本地 (User)');
         } finally {
             setLoading(false);
         }
@@ -205,7 +270,13 @@ export default function Admin() {
             setDeleteConfirm(null);
             fetchUsers();
         } catch (err) {
-            setError(err.message || 'Failed to delete user');
+            console.error('Delete user via API failed, using local store:', err);
+            const local = getLocalData(STORAGE_KEYS.users).filter(u => u.user_id !== userId);
+            setLocalData(STORAGE_KEYS.users, local);
+            setUsers(local);
+            setStats(prev => ({ ...prev, totalUsers: local.length }));
+            setDeleteConfirm(null);
+            setError('API 不可用，已从本地删除 (User)');
         } finally {
             setLoading(false);
         }
@@ -247,8 +318,12 @@ export default function Admin() {
         setLoading(true);
         setError('');
 
+        const isEditing = Boolean(editingItem);
+        const eventId = isEditing ? editingItem.event_id : generateUuid();
+
         try {
             const eventData = {
+                event_id: eventId,
                 title: eventForm.title,
                 description: eventForm.description,
                 location: eventForm.location,
@@ -259,7 +334,7 @@ export default function Admin() {
                 max_participants: eventForm.max_participants ? parseInt(eventForm.max_participants) : null,
             };
 
-            if (editingItem) {
+            if (isEditing) {
                 await eventAPI.update(editingItem.event_id, eventData);
             } else {
                 await eventAPI.create(eventData);
@@ -268,7 +343,22 @@ export default function Admin() {
             setShowEventModal(false);
             fetchEvents();
         } catch (err) {
-            setError(err.message || 'Failed to save event');
+            console.error('Saving event via API failed, using local store:', err);
+            const local = getLocalData(STORAGE_KEYS.events);
+            let nextEvents;
+
+            if (isEditing) {
+                nextEvents = local.map(e => e.event_id === editingItem.event_id ? { ...e, ...eventData } : e);
+            } else {
+                nextEvents = [...local, { ...eventData }];
+            }
+
+            setLocalData(STORAGE_KEYS.events, nextEvents);
+            setEvents(nextEvents);
+            const activeCount = nextEvents.filter(e => e.status === 'scheduled' || e.status === 'ongoing').length;
+            setStats(prev => ({ ...prev, activeEvents: activeCount }));
+            setShowEventModal(false);
+            setError('API 不可用，数据已保存在本地 (Event)');
         } finally {
             setLoading(false);
         }
@@ -281,7 +371,14 @@ export default function Admin() {
             setDeleteConfirm(null);
             fetchEvents();
         } catch (err) {
-            setError(err.message || 'Failed to delete event');
+            console.error('Delete event via API failed, using local store:', err);
+            const local = getLocalData(STORAGE_KEYS.events).filter(e => e.event_id !== eventId);
+            setLocalData(STORAGE_KEYS.events, local);
+            setEvents(local);
+            const activeCount = local.filter(e => e.status === 'scheduled' || e.status === 'ongoing').length;
+            setStats(prev => ({ ...prev, activeEvents: activeCount }));
+            setDeleteConfirm(null);
+            setError('API 不可用，已从本地删除 (Event)');
         } finally {
             setLoading(false);
         }
@@ -319,8 +416,12 @@ export default function Admin() {
         setLoading(true);
         setError('');
 
+        const isEditing = Boolean(editingItem);
+        const productId = isEditing ? editingItem.product_id : generateUuid();
+
         try {
             const productData = {
+                product_id: productId,
                 name: productForm.name,
                 description: productForm.description,
                 price: parseFloat(productForm.price) || 0,
@@ -329,7 +430,7 @@ export default function Admin() {
                 image_url: productForm.image_url || null,
             };
 
-            if (editingItem) {
+            if (isEditing) {
                 await productAPI.update(editingItem.product_id, productData);
             } else {
                 await productAPI.create(productData);
@@ -338,7 +439,21 @@ export default function Admin() {
             setShowProductModal(false);
             fetchProducts();
         } catch (err) {
-            setError(err.message || 'Failed to save product');
+            console.error('Saving product via API failed, using local store:', err);
+            const local = getLocalData(STORAGE_KEYS.products);
+            let nextProducts;
+
+            if (isEditing) {
+                nextProducts = local.map(p => p.product_id === editingItem.product_id ? { ...p, ...productData } : p);
+            } else {
+                nextProducts = [...local, { ...productData }];
+            }
+
+            setLocalData(STORAGE_KEYS.products, nextProducts);
+            setProducts(nextProducts);
+            setStats(prev => ({ ...prev, totalProducts: nextProducts.length }));
+            setShowProductModal(false);
+            setError('API 不可用，数据已保存在本地 (Product)');
         } finally {
             setLoading(false);
         }
@@ -351,7 +466,13 @@ export default function Admin() {
             setDeleteConfirm(null);
             fetchProducts();
         } catch (err) {
-            setError(err.message || 'Failed to delete product');
+            console.error('Delete product via API failed, using local store:', err);
+            const local = getLocalData(STORAGE_KEYS.products).filter(p => p.product_id !== productId);
+            setLocalData(STORAGE_KEYS.products, local);
+            setProducts(local);
+            setStats(prev => ({ ...prev, totalProducts: local.length }));
+            setDeleteConfirm(null);
+            setError('API 不可用，已从本地删除 (Product)');
         } finally {
             setLoading(false);
         }
@@ -595,11 +716,59 @@ export default function Admin() {
                     </div>
                 );
             case 'leaderboard':
+                const sortedUsers = [...users].sort((a, b) => (b.points || 0) - (a.points || 0));
                 return (
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Leaderboard Management</h2>
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                            <p className="p-6 text-gray-600">Leaderboard data will be displayed here. API integration pending.</p>
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">Leaderboard</h2>
+                                <p className="text-sm text-gray-600">排名按用户 points（score）实时更新</p>
+                            </div>
+                            <div className="text-sm text-gray-500">
+                                Total Players: {users.length}
+                            </div>
+                        </div>
+                        {error && (
+                            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                                {error}
+                            </div>
+                        )}
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points (Score)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {sortedUsers.map((user, index) => (
+                                        <tr key={user.user_id || index}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                                #{index + 1}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {user.username || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {user.email || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary">
+                                                {user.points || 0}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {sortedUsers.length === 0 && (
+                                        <tr>
+                                            <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
+                                                No leaderboard data yet
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 );
