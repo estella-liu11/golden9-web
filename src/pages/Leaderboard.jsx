@@ -1,34 +1,46 @@
 import { useState, useEffect } from 'react';
-import { leaderboardAPI } from '../services/api';
+import { userAPI } from '../services/api';
 
 export default function Leaderboard() {
-    const [rankings, setRankings] = useState([]);
+    const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        const fetchLeaderboard = async () => {
-            try {
-                setLoading(true);
-                setError('');
-                const data = await leaderboardAPI.getAll();
-                setRankings(data);
-            } catch (err) {
-                console.error('Error fetching leaderboard:', err);
-                setError('无法加载排行榜数据，请稍后再试');
-            } finally {
-                setLoading(false);
-            }
-        };
+    // Fetch users from API
+    const fetchUsers = async () => {
+        try {
+            setLoading(true);
+            const data = await userAPI.getAll();
+            // Filter out admin users, only show user, member, and standard roles
+            const filteredUsers = data.filter(user => {
+                const role = (user.role || '').toLowerCase();
+                return role === 'user' || role === 'member' || role === 'standard';
+            });
+            // Sort by points descending, same as Admin leaderboard
+            const sortedUsers = [...filteredUsers].sort((a, b) => (b.points || 0) - (a.points || 0));
+            setUsers(sortedUsers);
+            setError('');
+        } catch (err) {
+            console.error('Failed to fetch users:', err);
+            setError('无法加载排行榜数据，请稍后重试');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        fetchLeaderboard();
+    // Load data on mount
+    useEffect(() => {
+        fetchUsers();
     }, []);
 
-    const calculateLevel = (points) => {
-        if (points >= 4000) return 'Gold';
-        if (points >= 3000) return 'Silver';
-        return 'Bronze';
-    };
+    // Auto-refresh data every 5 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchUsers();
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     const getRankBadgeColor = (rank) => {
         if (rank === 1) return 'bg-yellow-100 text-yellow-800';
@@ -53,6 +65,12 @@ export default function Leaderboard() {
                     </p>
                 </div>
 
+                {error && (
+                    <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                        {error}
+                    </div>
+                )}
+
                 <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
@@ -73,28 +91,42 @@ export default function Leaderboard() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {rankings.map((player) => (
-                                    <tr key={player.rank} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-3 py-1 text-sm font-bold rounded-full ${getRankBadgeColor(player.rank)}`}>
-                                                #{player.rank}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-semibold text-gray-900">{player.username}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`text-sm font-semibold ${getLevelColor(player.level)}`}>
-                                                {player.level}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                                            <div className="text-sm font-bold text-gray-900">
-                                                {player.points.toLocaleString()}
-                                            </div>
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-8 text-center text-sm text-gray-500">
+                                            加载中...
                                         </td>
                                     </tr>
-                                ))}
+                                ) : users.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-8 text-center text-sm text-gray-500">
+                                            暂无排行榜数据
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    users.map((user, index) => (
+                                        <tr key={user.user_id || index} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`px-3 py-1 text-sm font-bold rounded-full ${getRankBadgeColor(index + 1)}`}>
+                                                    #{index + 1}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm font-semibold text-gray-900">{user.username || '-'}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`text-sm font-semibold ${getLevelColor(user.member_level || 'Bronze')}`}>
+                                                    {user.member_level || '-'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                <div className="text-sm font-bold text-gray-900">
+                                                    {(user.points || 0).toLocaleString()}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>

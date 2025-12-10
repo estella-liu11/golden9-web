@@ -36,7 +36,7 @@ export default function Admin() {
         description: '',
         location: '',
         start_time: '',
-        end_time: '',
+        registration_deadline: '',
         status: 'scheduled',
         fee: 0,
         max_participants: null,
@@ -310,7 +310,7 @@ export default function Admin() {
             description: '',
             location: '',
             start_time: '',
-            end_time: '',
+            registration_deadline: '',
             status: 'scheduled',
             fee: 0,
             max_participants: null,
@@ -325,7 +325,7 @@ export default function Admin() {
             description: event.description || '',
             location: event.location || '',
             start_time: event.start_time ? new Date(event.start_time).toISOString().slice(0, 16) : '',
-            end_time: event.end_time ? new Date(event.end_time).toISOString().slice(0, 16) : '',
+            registration_deadline: event.end_time ? new Date(event.end_time).toISOString().slice(0, 16) : '',
             status: event.status || 'scheduled',
             fee: event.fee || 0,
             max_participants: event.max_participants || null,
@@ -348,7 +348,7 @@ export default function Admin() {
                 description: eventForm.description,
                 location: eventForm.location,
                 start_time: eventForm.start_time,
-                end_time: eventForm.end_time || null,
+                end_time: eventForm.registration_deadline || null,
                 status: eventForm.status,
                 fee: parseFloat(eventForm.fee) || 0,
                 max_participants: eventForm.max_participants ? parseInt(eventForm.max_participants) : null,
@@ -624,7 +624,8 @@ export default function Admin() {
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">活动开始日期</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">报名截止日期</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -637,6 +638,9 @@ export default function Admin() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{event.location || '-'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {event.start_time ? new Date(event.start_time).toLocaleString() : '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {event.end_time ? new Date(event.end_time).toLocaleString() : '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${event.fee || 0}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
@@ -662,7 +666,7 @@ export default function Admin() {
                                     ))}
                                     {events.length === 0 && (
                                         <tr>
-                                            <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
+                                            <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-500">
                                                 No events found
                                             </td>
                                         </tr>
@@ -1030,7 +1034,7 @@ export default function Admin() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1"> Event Start Time</label>
                                         <input
                                             type="datetime-local"
                                             required
@@ -1040,11 +1044,11 @@ export default function Admin() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Registration Deadline</label>
                                         <input
                                             type="datetime-local"
-                                            value={eventForm.end_time}
-                                            onChange={(e) => setEventForm({ ...eventForm, end_time: e.target.value })}
+                                            value={eventForm.registration_deadline}
+                                            onChange={(e) => setEventForm({ ...eventForm, registration_deadline: e.target.value })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
                                         />
                                     </div>

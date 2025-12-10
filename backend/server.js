@@ -566,37 +566,7 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // -------------------------------------------------------------------------
-// 8. Leaderboard API Routes
-// -------------------------------------------------------------------------
-
-// GET: Retrieve leaderboard (ranked by points)
-app.get('/api/leaderboard', async (req, res) => {
-    try {
-        console.log('API Hit: GET /api/leaderboard');
-        const queryText = `
-            SELECT user_id, username, points, is_active
-            FROM users
-            WHERE is_active = TRUE
-            ORDER BY points DESC
-            LIMIT 100
-        `;
-        const result = await pool.query(queryText);
-        
-        // Add rank to each user
-        const leaderboard = result.rows.map((user, index) => ({
-            ...user,
-            rank: index + 1
-        }));
-        
-        res.status(200).json(leaderboard);
-    } catch (err) {
-        console.error('Error fetching leaderboard:', err.message);
-        res.status(500).json({ message: 'Database query failed to retrieve leaderboard.', error: err.message });
-    }
-});
-
-// -------------------------------------------------------------------------
-// 9. Start Server
+// 8. Start Server
 // -------------------------------------------------------------------------
 app.listen(port, () => {
     console.log(`✅ PostgreSQL API Server running at http://localhost:${port}`);

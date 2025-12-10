@@ -103,9 +103,4 @@ export const authAPI = {
     }),
 };
 
-// Leaderboard API
-export const leaderboardAPI = {
-    getAll: () => apiCall('/leaderboard'),
-};
-
 
