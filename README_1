@@ -1,0 +1,88 @@
+# Golden9 操作指导
+
+## 运行前后端
+
+### 启动后端服务器
+
+1. 开启后端目录：
+cd backend
+node server.js
+```
+
+2. 安装依赖（首次运行）：
+```bash
+npm install
+```
+
+3. 配置环境变量：
+   - 创建 `.env` 文件，配置数据库连接信息：
+   ```
+   DB_HOST=localhost
+   DB_NAME=golden9-db
+   DB_USER=liuhanyu
+   DB_PASSWORD=1215
+   DB_PORT=5432
+   JWT_SECRET=woaidataiqiu123
+   ```
+
+4. 初始化数据库（首次运行）：
+```bash
+psql -U liuhanyu -d golden9-db -f ../schema_setup.sql
+```
+
+5. 启动后端服务器：
+```bash
+cd src
+# 开发模式（自动重启）
+npm run dev
+
+# 或生产模式
+npm start
+```
+
+后端服务器将运行在：`http://localhost:3000`
+
+### 启动前端应用
+
+1. 在项目根目录下，安装依赖（首次运行）：
+```bash
+npm install
+```
+
+2. 启动开发服务器：
+```bash
+npm run dev
+```
+
+前端应用将运行在：`http://localhost:5173`（或 Vite 显示的端口）
+
+## 登录链接
+
+### 用户登录
+访问：`http://localhost:5173/login` 或 `http://localhost:5173/login?role=user`
+
+### 管理员登录
+访问：`http://localhost:5173/login?role=admin`
+
+## 测试账号
+
+**注意**：首次使用需要先创建账号。可以通过以下方式：
+
+1. **注册新账号**：
+   - 访问注册页面：`http://localhost:5173/signup`
+   - 填写信息注册普通用户账号
+
+2. **创建管理员账号**：
+   - 需要通过数据库直接创建，或使用后端 API 创建
+   - 管理员账号的 `role` 字段需要设置为 `admin`
+
+3. **测试账号示例**（需要先在数据库中创建）：
+   - **用户账号**：
+     - 邮箱：`Alic@123.com`
+     - 密码：`1215..`
+   - **管理员账号**：
+     - 邮箱：`admin@golden9.com`
+     - 密码：`strongpassword123`
+
+**提示**：如果数据库中没有账号，请先通过注册页面创建用户账号，或通过数据库管理工具创建管理员账号。
+

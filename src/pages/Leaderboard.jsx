@@ -1,17 +1,34 @@
+import { useState, useEffect } from 'react';
+import { leaderboardAPI } from '../services/api';
+
 export default function Leaderboard() {
-    // Mock data - will be replaced with API calls
-    const rankings = [
-        { rank: 1, username: 'PoolMaster2025', points: 5420, level: 'Gold' },
-        { rank: 2, username: 'CueChampion', points: 4890, level: 'Gold' },
-        { rank: 3, username: 'BilliardPro', points: 4320, level: 'Silver' },
-        { rank: 4, username: 'TableKing', points: 3890, level: 'Silver' },
-        { rank: 5, username: 'EightBallExpert', points: 3450, level: 'Silver' },
-        { rank: 6, username: 'NineBallNinja', points: 3120, level: 'Bronze' },
-        { rank: 7, username: 'SnookerStar', points: 2890, level: 'Bronze' },
-        { rank: 8, username: 'RackMaster', points: 2650, level: 'Bronze' },
-        { rank: 9, username: 'BreakKing', points: 2410, level: 'Bronze' },
-        { rank: 10, username: 'CueControl', points: 2180, level: 'Bronze' },
-    ];
+    const [rankings, setRankings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchLeaderboard = async () => {
+            try {
+                setLoading(true);
+                setError('');
+                const data = await leaderboardAPI.getAll();
+                setRankings(data);
+            } catch (err) {
+                console.error('Error fetching leaderboard:', err);
+                setError('无法加载排行榜数据，请稍后再试');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchLeaderboard();
+    }, []);
+
+    const calculateLevel = (points) => {
+        if (points >= 4000) return 'Gold';
+        if (points >= 3000) return 'Silver';
+        return 'Bronze';
+    };
 
     const getRankBadgeColor = (rank) => {
         if (rank === 1) return 'bg-yellow-100 text-yellow-800';

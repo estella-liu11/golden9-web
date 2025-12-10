@@ -25,9 +25,12 @@ export default function Admin() {
         username: '',
         password: '',
         role: 'standard',
+        member_level: null,
         points: 0,
         is_active: true,
     });
+    const [showPasswordChange, setShowPasswordChange] = useState(false);
+    const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
     const [eventForm, setEventForm] = useState({
         title: '',
         description: '',
@@ -190,10 +193,13 @@ export default function Admin() {
             email: '',
             username: '',
             password: '',
-            role: 'user',
+            role: 'standard',
+            member_level: null,
             points: 0,
             is_active: true,
         });
+        setShowPasswordChange(false);
+        setShowPasswordConfirm(false);
         setShowUserModal(true);
     };
 
@@ -204,9 +210,12 @@ export default function Admin() {
             username: user.username || '',
             password: '',
             role: user.role || 'standard',
+            member_level: user.member_level || null,
             points: user.points || 0,
             is_active: user.is_active !== undefined ? user.is_active : true,
         });
+        setShowPasswordChange(false);
+        setShowPasswordConfirm(false);
         setShowUserModal(true);
     };
 
@@ -224,7 +233,14 @@ export default function Admin() {
                 is_active: userForm.is_active,
             };
 
-            if (userForm.password) {
+            // Add member_level if role is member
+            if (userForm.role === 'member') {
+                userData.member_level = userForm.member_level || null;
+            } else {
+                userData.member_level = null;
+            }
+
+            if (userForm.password && (showPasswordChange || !editingItem)) {
                 userData.password = userForm.password;
             }
 
@@ -240,6 +256,8 @@ export default function Admin() {
             }
 
             setShowUserModal(false);
+            setShowPasswordChange(false);
+            setShowPasswordConfirm(false);
             fetchUsers();
         } catch (err) {
             // Fallback to local persistence when API fails
@@ -257,6 +275,8 @@ export default function Admin() {
             setUsers(nextUsers);
             setStats(prev => ({ ...prev, totalUsers: nextUsers.length }));
             setShowUserModal(false);
+            setShowPasswordChange(false);
+            setShowPasswordConfirm(false);
             setError('API 不可用，数据已保存在本地 (User)');
         } finally {
             setLoading(false);
@@ -532,6 +552,7 @@ export default function Admin() {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member Level</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -543,6 +564,9 @@ export default function Admin() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.username}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.role}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {user.role === 'member' ? (user.member_level || '-') : '-'}
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.points || 0}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -567,7 +591,7 @@ export default function Admin() {
                                     ))}
                                     {users.length === 0 && (
                                         <tr>
-                                            <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
+                                            <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-500">
                                                 No users found
                                             </td>
                                         </tr>
@@ -844,27 +868,86 @@ export default function Admin() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Password {editingItem && '(leave blank to keep current)'}
-                                    </label>
-                                    <input
-                                        type="password"
-                                        required={!editingItem}
-                                        value={userForm.password}
-                                        onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                                    />
-                                </div>
-                                <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                                     <select
                                         value={userForm.role}
-                                        onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                                        onChange={(e) => {
+                                            const newRole = e.target.value;
+                                            setUserForm({
+                                                ...userForm,
+                                                role: newRole,
+                                                member_level: newRole === 'member' ? userForm.member_level : null
+                                            });
+                                        }}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
                                     >
                                         <option value="standard">Standard</option>
+                                        <option value="member">Member</option>
                                         <option value="admin">Admin</option>
                                     </select>
+                                </div>
+                                {userForm.role === 'member' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Member Level</label>
+                                        <select
+                                            value={userForm.member_level || ''}
+                                            onChange={(e) => setUserForm({ ...userForm, member_level: e.target.value || null })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                                        >
+                                            <option value="">Select Level</option>
+                                            <option value="Gold">Gold</option>
+                                            <option value="Silver">Silver</option>
+                                            <option value="Bronze">Bronze</option>
+                                        </select>
+                                    </div>
+                                )}
+                                <div>
+                                    {editingItem ? (
+                                        <>
+                                            {!showPasswordChange ? (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="password"
+                                                            value="••••••••"
+                                                            disabled
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowPasswordConfirm(true)}
+                                                            className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors whitespace-nowrap"
+                                                        >
+                                                            Change Password
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                                                    <input
+                                                        type="password"
+                                                        required
+                                                        value={userForm.password}
+                                                        onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                                                    />
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                            <input
+                                                type="password"
+                                                required
+                                                value={userForm.password}
+                                                onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
@@ -1110,6 +1193,37 @@ export default function Admin() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Password Change Confirmation Modal */}
+            {showPasswordConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h3 className="text-xl font-bold text-gray-900 mb-4">Confirm Password Change</h3>
+                        <p className="text-gray-700 mb-6">
+                            Are you sure to edit user's password?
+                        </p>
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                onClick={() => {
+                                    setShowPasswordConfirm(false);
+                                }}
+                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                            >
+                                No
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowPasswordConfirm(false);
+                                    setShowPasswordChange(true);
+                                }}
+                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-purple-700"
+                            >
+                                Yes, I am
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
