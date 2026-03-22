@@ -1,0 +1,230 @@
+📄 Golden9 台球俱乐部管理系统设计需求文档 (最终版)
+I. 🎯 项目概述与核心目标
+Golden9 台球俱乐部管理系统的核心目标是提供一个现代、高级的 Web 应用程序，统一管理会员服务、赛事活动和商品销售。本项目采用混合技术栈，并以 Node.js/Express 后端作为前端的主要数据源。
+
+A. 设计语言与风格要求
+网站内容语言： 网站所有前端展示内容（包括标题、文本、按钮）必须为英文 (All website content must be in English)。
+
+视觉风格： 必须是高级、简洁、专业的。
+
+主色调（背景）： 纯白色 (#FFFFFF)。这是客户界面和管理员内容区的主色，用于营造简洁、明亮的体验。
+
+辅助色： 高级灰 (#F3F4F6 或 #E5E7EB)，用于分割线、卡片阴影或背景差异。
+
+重点色： 紫色 (#8B5CF6) 用于会员操作和主要链接；红色 (#DC2626) 用于管理员界面的重要操作（如删除）和权限强调。
+
+Logo： golden9.img 文件需放置在前端项目下的可访问目录（例如 src/assets/ 或 public/）中。
+
+II. 💻 项目技术架构与核心文件状态
+项目基于双后端架构，但前端（golden9-frontend）目前主要对接 Node.js/Express 后端。
+
+A. 技术栈
+前端框架： React 19.2.1 + TypeScript 4.9.5
+
+前端样式： Tailwind CSS (用于实现纯白色高级简洁风格)
+
+后端语言 (主要)： Node.js + Express 5.2.1
+
+数据库 (主要)： PostgreSQL
+
+认证机制 (主要)： JWT (JSON Web Token)
+
+后端端口 (主要)： 3000
+
+B. 核心文件与进度说明
+文件 src/AuthContext.js
+
+描述：负责管理全局用户状态 (currentUser)、登录/登出逻辑，并提供 useAuth Hook 供全应用使用。
+
+状态：[已完成，无需修改]
+
+备注：这是应用状态的核心，确保了登录状态的持久性。
+
+文件 src/pages/dbService.js
+
+描述：前端服务层，封装所有与 Node.js 后端 API (http://localhost:3000/api) 的通信，自动处理 JWT Token 携带。
+
+状态：[已完成，已包含所有 CRUD 接口封装]
+
+备注：Node.js 后端需实现 POST/PUT/DELETE 接口的完整逻辑，目前部分接口返回 501 占位。
+
+文件 golden9_backend/server.js
+
+描述：Node.js/Express 主服务器文件，负责处理 API 请求。
+
+状态：[已完成认证和用户 CRUD 接口]
+
+备注：这是前端目前依赖的唯一数据源。
+
+III. 🔑 认证与权限流程
+认证系统基于 Node.js 后端的 JWT 机制实现，前端通过 /login 统一入口。
+
+A. 登录与注册字段要求
+登录 (/login)： 接收 email 和 password (基于最新 Login.js 文件的修改)。
+
+注册 (/signup)： 接收 email、password、full_name 和 phone_number (基于最新 Signup.js 文件的修改)。
+
+Member Login (会员登录)： 访问 /login，成功后重定向到 /dashboard。
+
+Admin Login (管理员登录)： 访问 /login?role=admin，成功后重定向到 /admin。
+
+B. 权限保护
+用户保护： /dashboard 路径必须使用 ProtectedRoute 确保用户已登录。
+
+管理员保护： /admin 路径必须使用 ProtectedRoute 确保用户已登录，且 JWT 中包含 role: 'admin' 声明。
+
+IV. 🧑‍💻 客户界面需求 (Member Frontend)
+客户界面均采用 纯白色 背景，使用公共的 Header 和 Footer，内容为 英文。
+
+Home (/): 首页，展示俱乐部简介和最新公告。
+
+进度： 页面结构已完成，需替换为英文内容。
+
+Dashboard (/dashboard): 会员个人中心。展示个人信息（用户名、邮箱、电话、真实姓名）、会员等级、积分余额和活动记录。
+
+进度： 页面结构已完成，需对接 API 动态获取数据并替换为英文内容。
+
+Events (/events): 赛事列表。展示赛事名称、日期、费用、描述和“参与活动”按钮。
+
+进度： 页面结构已完成，需对接 getEvents() API 获取数据，并实现报名功能。
+
+Shop (/shop): 商品商城。展示商品图片、名称、价格、积分兑换选项和购买按钮。
+
+进度： 页面结构已完成，需对接 getProducts() API 获取数据。
+
+Leaderboard (/leaderboard): 公开排行榜。展示会员的实时积分和排名。
+
+进度： 页面结构已完成，后端 API 待实现。
+
+Membership (/membership): 会员专区。展示不同会员等级的权益和购买/续费选项。
+
+进度： 页面结构已完成，后端会员系统待实现。
+
+V. 🔒 管理员界面需求 (Admin Frontend)
+管理员界面 (/admin) 采用 深色侧边栏 + 纯白色主内容区 布局，所有导航和操作文字必须为 英文。
+
+核心文件： AdminApp.js 负责视图切换。
+
+导航模块： 仪表盘 (Dashboard)、用户管理 (User Management)、赛事管理 (Event Management)、商品管理 (Product Management)、排行榜 (Leaderboard)。
+
+A. 管理功能模块 (CRUD 需求)
+User Management (用户管理)
+
+功能：对所有会员进行完整的 CRUD 操作 (创建、查看、修改、删除)。
+
+API 接口：使用 getUsers(), updateUser(), deleteUser()。
+
+Event Management (赛事管理)
+
+功能：对赛事进行 CRUD：发布新赛事、编辑/下架现有赛事。
+
+API 接口：使用 getEvents(), addEvent(), updateEvent(), deleteEvent()。
+
+进度： 后端 add/update/deleteEvent 接口待实现。
+
+Product Management (商品管理)
+
+功能：对商品进行 CRUD：上架、修改信息、下架商品。
+
+API 接口：使用 getProducts(), addProduct(), updateProduct(), deleteProduct()。
+
+进度： 后端 addProduct/update/deleteProduct 接口待实现。
+
+Leaderboard (排行榜)
+
+功能：管理员在此界面查看、编辑和汇总原始的赛事参与和得分数据。
+
+API 接口：需专门的 API 接口（例如 /ranking/data）待后端实现。
+
+VI. 🔗 后端 API 接口要求 (Node.js/Express)
+基本 URL： http://localhost:3000/api
+
+认证要求： 除 /login 和 /register 外，所有接口都需要在请求头中携带有效的 JWT Token (Authorization: Bearer <token>)。
+
+A. 认证接口 (无需 Token)
+POST /api/login
+
+目的：用户登录。
+
+请求体：{ email, password }
+
+返回：JWT Token 和包含 role 字段的用户信息。
+
+POST /api/register
+
+目的：新用户注册。
+
+请求体：{ email, password, full_name, phone_number }
+
+B. 数据查询接口 (GET)
+GET /api/users
+
+权限：Admin
+
+目的：获取所有用户列表。
+
+GET /api/events
+
+权限：Public (用于客户界面和 Admin 管理界面)
+
+目的：获取所有赛事列表。
+
+GET /api/products
+
+权限：Public (用于客户界面和 Admin 管理界面)
+
+目的：获取所有商品列表。
+
+C. 管理操作接口 (Admin 权限)
+用户管理
+
+PUT /api/users/:id：更新指定用户详情。
+
+DELETE /api/users/:id：删除指定用户。
+
+赛事管理
+
+POST /api/events：创建新赛事。
+
+PUT /api/events/:id：更新赛事信息。
+
+DELETE /api/events/:id：删除赛事。
+
+商品管理
+
+POST /api/products：新增商品。
+
+PUT /api/products/:id：更新商品信息。
+
+DELETE /api/products/:id：删除商品。
+
+排行榜 (待实现)
+
+GET /api/ranking/data：获取排行榜原始数据。
+
+PUT /api/ranking/data/:id：更新排行榜得分。
+
+VII. ⚙️ 数据库与环境配置
+项目主要使用 Node.js 连接 PostgreSQL 数据库。
+
+数据库类型： PostgreSQL
+
+数据库名称： golden9-db (通过环境变量配置)
+
+关键数据表：
+
+users：包含 user_id, email, username, password_hash, role, points 等字段。
+
+events：包含 event_id, title, description, start_time, fee 等字段。
+
+products：包含 product_id, name, price, description, image_url 等字段。
+
+leaderboard：包含 leaderboard_id, user_id, score 等字段。
+
+Node.js 环境变量 (.env): 后端通过以下变量进行数据库连接和 JWT 密钥配置：
+
+DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT
+
+JWT_SECRET
+
+后端启动命令： 在开发环境中，建议使用 npm run dev 或直接使用 nodemon server.js 命令来启动 Node.js 服务器。

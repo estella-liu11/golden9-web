@@ -1,0 +1,35 @@
+{
+  "name": "Jie Park",
+  "title": "Head Coach, Match Performance",
+  "stats": [
+    {
+      "label": "Years Coaching",
+      "value": "10+ Years"
+    },
+    {
+      "label": "Players Trained",
+      "value": "200+ Players"
+    },
+    {
+      "label": "Tournament Focus",
+      "value": "8-Ball /9-Ball / 10-Ball"
+    }
+  ],
+  "cta": [
+    {
+      "label": "Book a Session",
+      "href": "/membership"
+    },
+    {
+      "label": "View Training Plans",
+      "href": "/coach#focus"
+    }
+  ],
+  "coachingFocus": [
+    "Fundamental alignment and cue delivery",
+    "Speed control and line management",
+    "Safety play and tactical decision-making",
+    "Pressure routines and match readiness",
+    "Practice structure with measurable checkpoints"
+  ]
+}

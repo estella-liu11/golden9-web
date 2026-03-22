@@ -1,0 +1,42 @@
+[
+  {
+    "rank": 1,
+    "username": "PlayerOne",
+    "points": 2500
+  },
+  {
+    "rank": 2,
+    "username": "BilliardMaster",
+    "points": 2350
+  },
+  {
+    "rank": 3,
+    "username": "CueKing",
+    "points": 2100
+  },
+  {
+    "rank": 4,
+    "username": "PoolShark",
+    "points": 1950
+  },
+  {
+    "rank": 5,
+    "username": "EightBallPro",
+    "points": 1800
+  },
+  {
+    "rank": 6,
+    "username": "BreakMaster",
+    "points": 1650
+  },
+  {
+    "rank": 7,
+    "username": "SpinDoctor",
+    "points": 1500
+  },
+  {
+    "rank": 8,
+    "username": "PocketAce",
+    "points": 1350
+  }
+]
